@@ -24,6 +24,7 @@ fun main() {
 
     println(validLines)
     println(secondQuestion())
+    println(canBeIncreasing(intArrayOf(100, 21, 100)))
 }
 
 fun secondQuestion(): Int {
@@ -73,4 +74,37 @@ fun secondQuestion(): Int {
         }
     }
     return validLines
+}
+
+fun canBeIncreasing(nums: IntArray): Boolean {
+    skips@ for (i in nums.indices) {
+        var frontIdx = 1
+        var backIdx = 0
+        while (frontIdx < nums.size) {
+            if (frontIdx == i) {
+                frontIdx++
+            }
+            if (backIdx == i) {
+                backIdx++
+            }
+            if (backIdx == frontIdx) {
+                frontIdx++
+            }
+            if (frontIdx == nums.size) {
+                return true
+            }
+            val difference = nums[frontIdx] - nums[backIdx]
+            if (difference > 0) {
+                if (frontIdx == nums.size - 1) {
+                    return true
+                } else {
+                    backIdx++
+                    frontIdx++
+                }
+            } else {
+                continue@skips
+            }
+        }
+    }
+    return false
 }
