@@ -9,7 +9,9 @@ fun main() {
         }
     }
 
-    println(first(map))
+    val (firstAnswer, firstPos, hitObjects) = first(map)
+    println(firstAnswer)
+    println(second(map, firstPos, hitObjects))
 }
 
 enum class Direction(val icon: Char, val deltaI: Int, val deltaJ: Int) {
@@ -29,11 +31,18 @@ enum class Direction(val icon: Char, val deltaI: Int, val deltaJ: Int) {
     abstract fun nextDirection(): Direction
 }
 
-fun first(map: MutableList<MutableList<Char>>): Int {
+fun first(originalMap: MutableList<MutableList<Char>>): Triple<Int, Pair<Int, Int>, MutableList<Pair<Int, Int>>> {
+    val map = mutableListOf<MutableList<Char>>()
+    for (i in originalMap.indices) {
+        map.add(mutableListOf())
+        for (j in originalMap[i].indices) {
+            map[i].add(originalMap[i][j])
+        }
+    }
+
     val icons = Direction.entries.map { it.icon }
     var iconI = 0
     var iconJ = 0
-    var sum = 1
     for (i in map.indices) {
         for (j in map[i].indices) {
             if (icons.contains(map[i][j])) {
@@ -42,6 +51,8 @@ fun first(map: MutableList<MutableList<Char>>): Int {
             }
         }
     }
+    val firstI = iconI
+    val firstJ = iconJ
 
     var currentDirection = Direction.entries.find { it.icon == map[iconI][iconJ] }!!
     val blockedCell = '#'
@@ -49,6 +60,8 @@ fun first(map: MutableList<MutableList<Char>>): Int {
     val visitedCell = 'X'
     val mapLimitI = map.size
     val mapLimitJ = map[0].size
+    var sum = 1
+    val hitObjects = mutableListOf<Pair<Int, Int>>()
     while (true) {
         val nextCellI = iconI + currentDirection.deltaI
         val nextCellJ = iconJ + currentDirection.deltaJ
@@ -58,6 +71,7 @@ fun first(map: MutableList<MutableList<Char>>): Int {
 
         val nextCell = map[nextCellI][nextCellJ]
         if (nextCell == blockedCell) {
+            hitObjects.add(Pair(nextCellI, nextCellJ))
             currentDirection = currentDirection.nextDirection()
             map[iconI][iconJ] = currentDirection.icon
         } else {
@@ -74,5 +88,20 @@ fun first(map: MutableList<MutableList<Char>>): Int {
         println(line)
     }
 
-    return sum
+    return Triple(sum, Pair(firstI, firstJ), hitObjects)
+}
+
+fun second(
+    map: MutableList<MutableList<Char>>,
+    firstPos: Pair<Int, Int>,
+    hitObjects: MutableList<Pair<Int, Int>>
+): Int {
+    val foundPositions = setOf<Pair<Int, Int>>()
+    for (point in hitObjects) {
+        // start from top left
+        // bottom left is missing
+        var startPoint = Pair(point.first + 1, point.second)
+        var direction = Direction.RIGHT
+    }
+    return -1
 }
