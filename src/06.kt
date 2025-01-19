@@ -1,5 +1,9 @@
 import java.io.File
 
+const val blockedCell = '#'
+const val newCell = '.'
+const val visitedCell = 'X'
+
 fun main() {
     val map = mutableListOf<MutableList<Char>>()
     File("resources/06.in").forEachLine { line ->
@@ -31,7 +35,9 @@ enum class Direction(val icon: Char, val deltaI: Int, val deltaJ: Int) {
     abstract fun nextDirection(): Direction
 }
 
-fun first(originalMap: MutableList<MutableList<Char>>): Triple<Int, Pair<Int, Int>, MutableList<Pair<Int, Int>>> {
+data class IconState(var i: Int, var j: Int, var direction: Direction)
+
+fun first(originalMap: MutableList<MutableList<Char>>): Triple<Int, IconState, MutableList<IconState>> {
     val map = mutableListOf<MutableList<Char>>()
     for (i in originalMap.indices) {
         map.add(mutableListOf())
@@ -53,15 +59,12 @@ fun first(originalMap: MutableList<MutableList<Char>>): Triple<Int, Pair<Int, In
     }
     val firstI = iconI
     val firstJ = iconJ
-
-    var currentDirection = Direction.entries.find { it.icon == map[iconI][iconJ] }!!
-    val blockedCell = '#'
-    val newCell = '.'
-    val visitedCell = 'X'
+    val firstDirection = Direction.entries.find { it.icon == map[iconI][iconJ] }!!
+    var currentDirection = firstDirection
     val mapLimitI = map.size
     val mapLimitJ = map[0].size
     var sum = 1
-    val hitObjects = mutableListOf<Pair<Int, Int>>()
+    val iconSteps = mutableListOf<IconState>()
     while (true) {
         val nextCellI = iconI + currentDirection.deltaI
         val nextCellJ = iconJ + currentDirection.deltaJ
@@ -71,7 +74,6 @@ fun first(originalMap: MutableList<MutableList<Char>>): Triple<Int, Pair<Int, In
 
         val nextCell = map[nextCellI][nextCellJ]
         if (nextCell == blockedCell) {
-            hitObjects.add(Pair(nextCellI, nextCellJ))
             currentDirection = currentDirection.nextDirection()
             map[iconI][iconJ] = currentDirection.icon
         } else {
@@ -82,26 +84,94 @@ fun first(originalMap: MutableList<MutableList<Char>>): Triple<Int, Pair<Int, In
             map[nextCellI][nextCellJ] = currentDirection.icon
             iconI = nextCellI
             iconJ = nextCellJ
+            iconSteps.add(IconState(iconI, iconJ, currentDirection))
         }
     }
     for (line in map) {
         println(line)
     }
 
-    return Triple(sum, Pair(firstI, firstJ), hitObjects)
+    return Triple(sum, IconState(firstI, firstJ, firstDirection), iconSteps)
 }
 
 fun second(
     map: MutableList<MutableList<Char>>,
-    firstPos: Pair<Int, Int>,
-    hitObjects: MutableList<Pair<Int, Int>>
+    firstPos: IconState,
+    iconSteps: MutableList<IconState>
 ): Int {
-    val foundPositions = setOf<Pair<Int, Int>>()
-    for (point in hitObjects) {
-        // start from top left
-        // bottom left is missing
-        var startPoint = Pair(point.first + 1, point.second)
-        var direction = Direction.RIGHT
+    val mapLimitI = map.size
+    val mapLimitJ = map[0].size
+    val foundPositions = mutableSetOf<Pair<Int, Int>>()
+    for (point in iconSteps) {
+        map[point.i][point.j] = blockedCell
+        val fastIcon = IconState(firstPos.i, firstPos.j, firstPos.direction)
+        val slowIcon = IconState(firstPos.i, firstPos.j, firstPos.direction)
+        var isSlowWalkTurn = false
+        while (true) {
+            val nextCellI = fastIcon.i + fastIcon.direction.deltaI
+            val nextCellJ = fastIcon.j + fastIcon.direction.deltaJ
+            if (nextCellI < 0 || nextCellJ < 0 || nextCellI == mapLimitI || nextCellJ == mapLimitJ) {
+                break
+            }
+
+
+            val nextCell = map[nextCellI][nextCellJ]
+            if (nextCell == blockedCell) {
+                fastIcon.direction = fastIcon.direction.nextDirection()
+            } else {
+                fastIcon.i = nextCellI
+                fastIcon.j = nextCellJ
+            }
+            if (isSlowWalkTurn) {
+                val slowNextCellI = slowIcon.i + slowIcon.direction.deltaI
+                val slowNextCellJ = slowIcon.j + slowIcon.direction.deltaJ
+                val slowNextCell = map[slowNextCellI][slowNextCellJ]
+                if (slowNextCell == blockedCell) {
+                    slowIcon.direction = slowIcon.direction.nextDirection()
+                } else {
+                    slowIcon.i = slowNextCellI
+                    slowIcon.j = slowNextCellJ
+                }
+                isSlowWalkTurn = false
+            } else {
+                isSlowWalkTurn = true
+            }
+            if (fastIcon == slowIcon) {
+                println("$fastIcon $slowIcon")
+                foundPositions.add(Pair(point.i, point.j))
+                break
+            }
+        }
+        map[point.i][point.j] = newCell
+
     }
-    return -1
+    println(foundPositions)
+    return foundPositions.size
+}
+
+fun walkUntilObstacleOrEdge(
+    map: MutableList<MutableList<Char>>,
+    initialPos: Pair<Int, Int>,
+    direction: Direction
+): Pair<Int, Int>? {
+    val blockedCell = '#'
+    val mapLimitI = map.size
+    val mapLimitJ = map[0].size
+    var iconI = initialPos.first
+    var iconJ = initialPos.second
+    while (true) {
+        val nextCellI = iconI + direction.deltaI
+        val nextCellJ = iconJ + direction.deltaJ
+        if (nextCellI < 0 || nextCellJ < 0 || nextCellI == mapLimitI || nextCellJ == mapLimitJ) {
+            return null
+        }
+
+        val nextCell = map[nextCellI][nextCellJ]
+        if (nextCell == blockedCell) {
+            return Pair(nextCellI, nextCellJ)
+        } else {
+            iconI = nextCellI
+            iconJ = nextCellJ
+        }
+    }
 }
